@@ -13,9 +13,14 @@ import (
 	"strings"
 )
 
+type ResponseMsg struct {
+	Count   int
+	Context string
+}
+
 var (
 	musicList []string
-	spamList  []string //Loaded from database
+	spamList  []string
 	upgrader  = websocket.Upgrader{}
 )
 
@@ -61,13 +66,14 @@ func main() {
 	}
 
 	//load local spam list
-	spamList, err := main.LinesFromFile("./spam.txt")
+	l, err := LinesFromFile("./spam.txt")
 	if err != nil {
 		log.Fatal("Error loading in spamlist", err)
 	}
+	spamList = l
 
 	// musicList = []string{}
-	musicList, err = main.BrowseXFiles(".mp2", os.Args[1:][0])
+	musicList, err = BrowseXFiles(".mp3", os.Args[1:][0])
 	if err != nil {
 		log.Fatal("Error in walking over files", err)
 	}
@@ -94,26 +100,19 @@ func home(rw http.ResponseWriter, req *http.Request) {
 	t.Execute(rw, &v)
 }
 
-type ResponseMsg struct {
-	Count   int
-	Context string
-}
-
 func compute(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
-	defer c.Close()
-
-	var cleaned_fi string
-	var spam string
-	var iter = 0
+	// defer c.Close()
 
 	//Regex for websites spam
 	webRex := "(www.|)[a-zA-Z0-9_\\-]+\\.[a-zA-Z]{2,4}"
 	rx, _ := regexp.Compile(webRex)
+	var iter = 0
+	var cleaned_fi string
 
 	//Scan music list
 	for _, fi := range musicList {
@@ -126,7 +125,7 @@ func compute(w http.ResponseWriter, r *http.Request) {
 		if rx.MatchString(cleaned_fi) {
 
 			//Spam List Match
-			spam = str_in_slice(cleaned_fi, spamList)
+			spam := stringInSlice(cleaned_fi, spamList)
 			if spam == "" { //spam not found
 				c.WriteJSON(&ResponseMsg{iter, cleaned_fi})
 
@@ -146,12 +145,18 @@ func compute(w http.ResponseWriter, r *http.Request) {
 }
 
 func appendToSpamDB(sp string) {
-	file, _ := os.OpenFile("spam.txt", os.O_RDWR|os.O_APPEND, 0666)
-	defer file.Close()
-	file.WriteString(sp + "\n")
+	if sp != "" {
+		file, _ := os.OpenFile("spam.txt", os.O_RDWR|os.O_APPEND, 0666)
+		defer file.Close()
+		b := make([]byte, 1000) //this can be efficient
+		file.Read(b)
+		if !strings.Contains(string(b), sp) {
+			file.WriteString(sp + "\n")
+		}
+	}
 }
 
-func str_in_slice(a string, b []string) string {
+func stringInSlice(a string, b []string) string {
 	for _, el := range b {
 		if strings.Contains(a, el) {
 			return el
