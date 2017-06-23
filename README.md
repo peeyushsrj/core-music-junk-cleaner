@@ -10,7 +10,9 @@ It scans the music directory provided in input, rename music files by removing t
 - Installing package `go get github.com/gorilla/websocket`.
 - Clone it `git clone https://github.com/peeyushsrj/music-junk-cleaner/`
 - Changed directory & build it `go build`.
-- Run it! `./music-junk-cleaner /home/user/some_music_directory/`
+- Run the binary file ! `./music-junk-cleaner /home/user/some_music_directory/`
+- Open `http://localhost:7899`.
+
 
 ### Future TODO
 
