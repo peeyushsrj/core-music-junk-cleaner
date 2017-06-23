@@ -1,6 +1,6 @@
 # music-junk-cleaner
 
-It scans the music directory provided in input, rename them by removing the junk data. If it finds a new junk data pattern, it will ask you to mark it, and it will clean(rename) such kind of patterns.
+It scans the music directory provided in input, rename music files by removing the junk data. If it finds a new junk data pattern, it will prompt you to mark and then it will clean/rename such patterns.
 
 ### Build instructions
 
