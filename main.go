@@ -1,3 +1,4 @@
+/*Program to remove junk data in mp3 files*/
 package main
 
 import (
@@ -20,7 +21,7 @@ type ResponseMsg struct {
 
 var (
 	musicList []string
-	spamList  []string
+	junkList  []string
 	upgrader  = websocket.Upgrader{}
 )
 
@@ -65,12 +66,12 @@ func main() {
 		return
 	}
 
-	//load local spam list
-	l, err := LinesFromFile("./spam.txt")
+	//load local junk list
+	l, err := LinesFromFile("./junk.txt")
 	if err != nil {
-		log.Fatal("Error loading in spamlist", err)
+		log.Fatal("Error loading in junklist", err)
 	}
-	spamList = l
+	junkList = l
 
 	// musicList = []string{}
 	musicList, err = BrowseXFiles(".mp3", os.Args[1:][0])
@@ -96,19 +97,19 @@ func home(rw http.ResponseWriter, req *http.Request) {
 		req.Host,
 		len(musicList),
 	}
-	t := template.Must(template.ParseFiles("socketed.html"))
+	t := template.Must(template.ParseFiles("main.html"))
 	t.Execute(rw, &v)
 }
 
 func compute(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		log.Print("upgrade websocket error:", err)
 		return
 	}
 	// defer c.Close()
 
-	//Regex for websites spam
+	//Regex for websites junk (possible junk)
 	webRex := "(www.|)[a-zA-Z0-9_\\-]+\\.[a-zA-Z]{2,4}"
 	rx, _ := regexp.Compile(webRex)
 	var iter = 0
@@ -121,32 +122,32 @@ func compute(w http.ResponseWriter, r *http.Request) {
 		//Only base names, mp3 extension exclude
 		cleaned_fi = filepath.Base(strings.TrimSuffix(fi, ".mp3"))
 
-		//Possible spam with websites name, other exclude
+		//Possible junk with websites name, other exclude
 		if rx.MatchString(cleaned_fi) {
 
-			//Spam List Match
-			spam := stringInSlice(cleaned_fi, spamList)
-			if spam == "" { //spam not found
+			//junk List Match
+			junk := stringInSlice(cleaned_fi, junkList)
+			if junk == "" { //junk not found
 				c.WriteJSON(&ResponseMsg{iter, cleaned_fi})
 
-				var v = struct{ Spam string }{}
+				var v = struct{ junk string }{}
 				c.ReadJSON(&v)
-				spam = v.Spam
+				junk = v.junk
 
-				//New spam from user added to local spam list
-				spamList = append(spamList, spam)
-				appendToSpamDB(spam)
+				//New junk from user added to local junk list
+				junkList = append(junkList, junk)
+				appendTojunkDB(junk)
 			}
-			// os.Rename(fi, strings.Replace(fi, spam, "", 1))
+			// os.Rename(fi, strings.Replace(fi, junk, "", 1))
 		}
 	}
 	c.WriteJSON(&ResponseMsg{iter, cleaned_fi})
 	c.Close()
 }
 
-func appendToSpamDB(sp string) {
+func appendTojunkDB(sp string) {
 	if sp != "" {
-		file, _ := os.OpenFile("spam.txt", os.O_RDWR|os.O_APPEND, 0666)
+		file, _ := os.OpenFile("junk.txt", os.O_RDWR|os.O_APPEND, 0666)
 		defer file.Close()
 		b := make([]byte, 1000) //this can be efficient
 		file.Read(b)
