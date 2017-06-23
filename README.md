@@ -16,12 +16,10 @@ It scans the music directory provided in input, rename music files by removing t
 
 ### Future TODO
 
-- [ ] Launching a browser on start of this pgm.
-- [ ] X platform Binaries.
-- [ ] Demo gif on readme.
-- [ ] Add support to other music formats.
-- [ ] Cutting out core from UI.
-- [ ] Advertizing for fun & usability.
+- [ ] Launching a browser on startup, demo gif on readme, support other music formats.
+- [ ] Setting up CI for X platform Binaries.
+- [ ] Cutting out core from UI (Imp).
+- [ ] Advertizing!
 
 ### License
 
