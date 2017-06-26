@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/peeyushsrj/music-junk-cleaner)](https://goreportcard.com/report/github.com/peeyushsrj/music-junk-cleaner)
+
 # music-junk-cleaner
 
 It scans the music directory provided in input, rename music files by removing the junk data. If it finds a new junk data pattern, it will prompt you to mark and then it will clean/rename such patterns.
