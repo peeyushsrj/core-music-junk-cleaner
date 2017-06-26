@@ -26,7 +26,7 @@ var (
 	upgrader  = websocket.Upgrader{}
 )
 
-//Function LinesFromFile reads string from path and return array of string line by line
+//LinesFromFile reads string from path and return array of string line by line
 func LinesFromFile(path string) ([]string, error) {
 	var arr []string
 
@@ -46,7 +46,7 @@ func LinesFromFile(path string) ([]string, error) {
 	return arr, nil
 }
 
-//Function BrowseXFiles reads all x types of files from root path & return filepaths in an array of string
+//BrowseXFiles reads all x types of files from root path & return filepaths in an array of string
 func BrowseXFiles(x string, root string) ([]string, error) {
 	var arr []string
 	err := filepath.Walk(root, func(path string, f os.FileInfo, err error) error {
