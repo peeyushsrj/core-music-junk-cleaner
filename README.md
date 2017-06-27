@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/peeyushsrj/music-junk-cleaner)](https://goreportcard.com/report/github.com/peeyushsrj/music-junk-cleaner)
+![Build Status](https://circleci.com/gh/peeyushsrj/music-junk-cleaner.png)
 
 # music-junk-cleaner
 
