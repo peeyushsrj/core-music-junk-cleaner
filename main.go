@@ -2,169 +2,92 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"html/template"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-)
 
-//ResponseMsg is the format in which server sends websocket to clients
-type ResponseMsg struct {
-	Count   int
-	Context string
-}
+	snip "github.com/peeyushsrj/golang-snippets"
+)
 
 var (
-	musicList []string
-	junkList  []string
-	upgrader  = websocket.Upgrader{}
+	webRex         = "(www.|)[a-zA-Z0-9_\\-]+\\.[a-zA-Z]{2,4}"
+	fileType       = ".mp3"
+	shouldRename   = false
+	junkFilesFound = false
 )
-
-//LinesFromFile reads string from path and return array of string line by line
-func LinesFromFile(path string) ([]string, error) {
-	var arr []string
-
-	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return arr, err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		arr = append(arr, strings.TrimSpace(scanner.Text()))
-	}
-	if scanner.Err() != nil {
-		return arr, scanner.Err()
-	}
-	return arr, nil
-}
-
-//BrowseXFiles reads all x types of files from root path & return filepaths in an array of string
-func BrowseXFiles(x string, root string) ([]string, error) {
-	var arr []string
-	err := filepath.Walk(root, func(path string, f os.FileInfo, err error) error {
-		if !f.IsDir() {
-			if strings.HasSuffix(f.Name(), x) { //.mp3
-				arr = append(arr, path)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return arr, err
-	}
-	return arr, nil
-}
 
 func main() {
 	if len(os.Args) == 1 {
-		fmt.Printf("Usage: %s [path to mp3s]\n", os.Args[0])
+		fmt.Printf("Usage: [path to mp3s] [--rename]\n")
 		return
+	} else if len(os.Args) == 3 {
+		//Checking for rename flag
+		if os.Args[2:][0] == "--rename" {
+			shouldRename = true
+		}
 	}
 
-	//load local junk list
-	l, err := LinesFromFile("./junk.txt")
+	//Read Junk List stored in array
+	junkList, err := snip.ReadLineFromFile("./junk.txt")
 	if err != nil {
 		log.Fatal("Error loading in junklist", err)
 	}
-	junkList = l
-
-	// musicList = []string{}
-	musicList, err = BrowseXFiles(".mp3", os.Args[1:][0])
+	//Read Music List stored in array
+	musicList, err := snip.BrowseXFiles(fileType, os.Args[1:][0])
 	if err != nil {
-		log.Fatal("Error in walking over files", err)
+		log.Fatal("Error in browsing mp3 files", err)
 	}
-
-	http.HandleFunc("/", home)
-	http.HandleFunc("/ws", compute)
-	log.Println("Running on :7899")
-	err = http.ListenAndServe(":7899", nil)
-	if err != nil {
-		log.Fatal("listenAndServe", err)
-	}
-}
-
-func home(rw http.ResponseWriter, req *http.Request) {
-	// fmt.Println("Client connected", req.RemoteAddr)
-	var v = struct {
-		Host  string
-		Count int
-	}{
-		req.Host,
-		len(musicList),
-	}
-	t := template.Must(template.ParseFiles("main.html"))
-	t.Execute(rw, &v)
-}
-
-func compute(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade websocket error:", err)
+	if len(musicList) == 0 {
+		fmt.Println("No Music Files here!...")
 		return
 	}
-	// defer c.Close()
-
-	//Regex for websites junk (possible junk)
-	webRex := "(www.|)[a-zA-Z0-9_\\-]+\\.[a-zA-Z]{2,4}"
+	//Regex for website junk
 	rx, _ := regexp.Compile(webRex)
-	var iter = 0
-	var cleanedFi string
 
-	//Scan music list
 	for _, fi := range musicList {
-		iter = iter + 1
-
-		//Only base names, mp3 extension exclude
-		cleanedFi = filepath.Base(strings.TrimSuffix(fi, ".mp3"))
-
-		//Possible junk with websites name, other exclude
-		if rx.MatchString(cleanedFi) {
-
-			//junk List Match
-			junk := stringInSlice(cleanedFi, junkList)
-			if junk == "" { //junk not found
-				c.WriteJSON(&ResponseMsg{iter, cleanedFi})
-
-				var v = struct{ junk string }{}
-				c.ReadJSON(&v)
-				junk = v.junk
-
-				//New junk from user added to local junk list
-				junkList = append(junkList, junk)
-				appendTojunkDB(junk)
+		//This contains base file name i.e. without directory name
+		//also removed .mp3 extension
+		fiCleaned := filepath.Base(strings.TrimSuffix(fi, fileType))
+		//Potential junk by above regex
+		if rx.MatchString(fiCleaned) {
+			//Flag for existance of junk files
+			if !junkFilesFound {
+				junkFilesFound = true
 			}
-			// os.Rename(fi, strings.Replace(fi, junk, "", 1))
-		}
-	}
-	c.WriteJSON(&ResponseMsg{iter, cleanedFi})
-	c.Close()
-}
+			junk := snip.StringInSlice(fiCleaned, junkList)
+			//If Junk not found in the list
+			if junk == "" {
+				fmt.Println("Enter the spam part for : ", fiCleaned)
+				//Empty response or space response handled by scanf
+				_, err := fmt.Scanln(&junk)
+				if err != nil {
+					log.Fatal("Error in reading junk variable: ", err)
+				}
+				junkList = append(junkList, junk)
 
-func appendTojunkDB(sp string) {
-	if sp != "" {
-		file, _ := os.OpenFile("junk.txt", os.O_RDWR|os.O_APPEND, 0666)
-		defer file.Close()
-		b := make([]byte, 1000) //this can be efficient
-		file.Read(b)
-		if !strings.Contains(string(b), sp) {
-			file.WriteString(sp + "\n")
+				err = snip.AppendStringToFile(junk, "junk.txt", true)
+				if err != nil {
+					log.Fatal("Error appending to junk.txt", err)
+				}
+			}
+			//Here we go junk variable set & added to memory
+			if shouldRename {
+				errt := os.Rename(fi, strings.Replace(fi, junk, "", 1))
+				if errt != nil {
+					log.Println("Error in re-naming: ", errt)
+					continue
+				}
+			}
+			fmt.Println("Old Name: ", fi)
+			fmt.Println("New Name: ", strings.Replace(fi, junk, "", 1))
 		}
 	}
-}
-
-func stringInSlice(a string, b []string) string {
-	for _, el := range b {
-		if strings.Contains(a, el) {
-			return el
-		}
+	if !junkFilesFound {
+		fmt.Println("No Junk Files Found!")
+	} else {
+		fmt.Println("Process Completed Successfully!")
 	}
-	return ""
 }
