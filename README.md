@@ -1,6 +1,8 @@
 ![Build Status](https://circleci.com/gh/peeyushsrj/music-junk-cleaner.png)
 
-# music-junk-cleaner
+# core-music-junk-cleaner
+
+Core of ui-music-junk-cleaner
 
 It scans the music directory provided in input, rename music files by removing the junk data. If it finds a new junk data pattern, it will prompt you to mark and then it will clean/rename such patterns.
 
@@ -13,15 +15,12 @@ It scans the music directory provided in input, rename music files by removing t
 - Clone it `git clone https://github.com/peeyushsrj/music-junk-cleaner/`
 - Changed directory & build it `go build`.
 - Run the binary file ! `./music-junk-cleaner /home/user/some_music_directory/`
-- Open `http://localhost:7899`.
 
 
 ### Future TODO
 
 - [ ] Launching a browser on startup, demo gif on readme, support other music formats.
 - [ ] Setting up CI for X platform Binaries.
-- [ ] Cutting out core from UI (Imp).
-- [ ] Advertizing!
 
 ### License
 
